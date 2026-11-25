@@ -65,9 +65,14 @@ func GenerateCode(secret string, t time.Time) (string, error) {
 type ValidateOpts struct {
 	// Number of seconds a TOTP hash is valid for. Defaults to 30 seconds.
 	Period uint
-	// Periods before or after the current time to allow.  Value of 1 allows up to Period
-	// of either side of the specified time.  Defaults to 0 allowed skews.  Values greater
+	// Periods before or after the current time to allow. Value of 1 allows up to Period
+	// of either side of the specified time. Defaults to 0 allowed skews. Values greater
 	// than 1 are likely sketchy.
+	//
+	// TOTP counters are non-negative Unix-time periods. Backward candidates below zero
+	// are skipped rather than converted to a large uint64 counter. If Skew is larger
+	// than the current counter, such as near the Unix epoch or with a very large
+	// Period, the backward validation window is therefore shorter than Skew.
 	Skew uint
 	// Digits as part of the input. Defaults to 6.
 	Digits otp.Digits
@@ -109,7 +114,9 @@ func ValidateCustom(passcode string, secret string, t time.Time, opts ValidateOp
 	counters = append(counters, uint64(counter))
 	for i := 1; i <= int(opts.Skew); i++ {
 		counters = append(counters, uint64(counter+int64(i)))
-		counters = append(counters, uint64(counter-int64(i)))
+		if counter >= int64(i) {
+			counters = append(counters, uint64(counter-int64(i)))
+		}
 	}
 
 	for _, counter := range counters {

@@ -44,6 +44,11 @@ For an example of a working enrollment work flow, [GitHub has documented theirs]
 1. Retrieve the User's TOTP Secret from your backend.
 1. Validate the user's passcode. `totp.Validate(...)`
 
+`ValidateOpts.Skew` allows that many periods before and after the current period.
+A backward step that would produce a negative TOTP counter is skipped instead of
+wrapping to a very large `uint64` counter. Near the epoch, or when `Period` is so
+large that the current counter is smaller than `Skew`, the accepted backward window
+is shorter than the configured `Skew`; the forward window is unchanged.
 
 ### Recovery Codes
 
